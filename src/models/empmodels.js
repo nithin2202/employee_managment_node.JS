@@ -991,6 +991,65 @@ let empmodels = {
             throw { errorCode: 'DB_Error', message: 'error occured while executing' }
         }
     },
+    insertReview:async(data,trx=null)=>{
+         let knex = trx != null ? trx : db;
+         try {
+            let result=knex('reviews')
+            result.insert(data)
+            return await result
+         } catch (error) {
+             throw { errorCode: 'DB_Error', message: 'error occured while executing' }
+         }
+    },
+    getReviewById:async(id,trx=null)=>{
+        let knex = trx != null ? trx : db;
+        try {
+            let result=knex('reviews')
+            result.select('id')
+            result.select('product_id')
+            result.select('vendor_id')
+            result.select('rating')
+            result.select('comment')
+            result.where('id',id)
+            return await result
+        } catch (error) {
+            throw { errorCode: 'DB_Error', message: 'error occured while executing' }
+        }
+    },
+    updateReview:async(id,data,trx=null)=>{
+         let knex = trx != null ? trx : db;
+         try {
+            let result=knex('reviews')
+            result.where('id',id)
+            result.update(data)
+            return await result
+         } catch (error) {
+            throw { errorCode: 'DB_Error', message: 'error occured while executing' }
+         }
+    },
+    deleteReview:async(id,trx=null)=>{
+        let knex = trx != null ? trx : db;
+        try {
+            let result=knex('reviews')
+            result.where('id',id)
+            result.del()
+            return await result
+        } catch (error) {
+             throw { errorCode: 'DB_Error', message: 'error occured while executing' }
+        }
+    },
+    getReviewByProductId:async(id,trx=null)=>{
+         let knex = trx != null ? trx : db;
+         try {
+            let result=knex('reviews')
+            result.select('rating')
+            result.select('comment')
+            result.where('product_id',id)
+            return await result
+         } catch (error) {
+             throw { errorCode: 'DB_Error', message: 'error occured while executing' }
+         }
+    }
 
 
 }

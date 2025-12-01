@@ -1580,7 +1580,7 @@ let employee = {
                 if (order[0].status != 1) {
                     throw { errorCode: 'API_ERROR', message: 'accounts team alredy reacted for this order' }
                 }
-                
+
                 const vendor_id = order[0].vendor_id
                 const vendor = await empmodels.getVendrosById(vendor_id)
                 if (vendor.length == 0) {
@@ -1595,24 +1595,24 @@ let employee = {
                     throw { errorCode: 'VALID_ERROR', message: 'cannot found the product' }
                 }
                 const stock = product[0].stock
-                
+
                 if (stock >= order[0].quantity) {
-                   const data={
-                    stock:stock-order[0].quantity
-                   }
+                    const data = {
+                        stock: stock - order[0].quantity
+                    }
                     const payload = {
                         status: req.body.status,
                         verified_by: verify_id
                     }
-                    await empmodels.updateProduct(order[0].product_id,data)
+                    await empmodels.updateProduct(order[0].product_id, data)
                     await empmodels.updateOrderById(id, payload)
-                   
+
                 } else {
                     const total_price = req.body.quantity * product[0].base_price
                     priceAfterDiscount = total_price - (vendor[0].discount / 100) * total_price
 
-                    const data={
-                        stock:stock-req.body.quantity
+                    const data = {
+                        stock: stock - req.body.quantity
                     }
                     const payload = {
                         status: req.body.status,
@@ -1621,11 +1621,11 @@ let employee = {
                         total_price,
                         price_after_discount: priceAfterDiscount
                     }
-                    await empmodels.updateProduct(order[0].product_id,data)
+                    await empmodels.updateProduct(order[0].product_id, data)
                     await empmodels.updateOrderById(id, payload)
                 }
 
-                 return res.status(200).json({ message: 'verified succesfully' })
+                return res.status(200).json({ message: 'verified succesfully' })
             } catch (error) {
                 if (error.errorCode === 'VALID_ERROR') {
                     return res.status(422).json({
@@ -1667,7 +1667,7 @@ let employee = {
                 if (order.length == 0) {
                     throw { errorCode: 'VALID_ERROR', message: 'order not found' }
                 }
-                if (order[0].status !=2) {
+                if (order[0].status != 2) {
                     throw { errorCode: 'API_ERROR', message: 'dispatch team already reacted for this order' }
                 }
                 const vendor_id = order[0].vendor_id;
@@ -1745,19 +1745,19 @@ let employee = {
                 }
                 await empmodels.updateOrderByGroupId(group_id, data)
             }
-            else{
-            const payload = {
-                total_price,
-                delivery_date: moment().format('YYYY-MM-DD'),
-                group_id,
-                payment: 1
+            else {
+                const payload = {
+                    total_price,
+                    delivery_date: moment().format('YYYY-MM-DD'),
+                    group_id,
+                    payment: 1
+                }
+                await empmodels.insertFinalOrderDetails(payload)
+                const data = {
+                    status: 4
+                }
+                await empmodels.updateOrderByGroupId(group_id, data)
             }
-            await empmodels.insertFinalOrderDetails(payload)
-            const data = {
-                status: 4
-            }
-            await empmodels.updateOrderByGroupId(group_id, data)
-        }
             return res.status(200).json({ message: 'order delivered and you can check total price' })
 
         } catch (error) {
@@ -1836,16 +1836,16 @@ let employee = {
             }
         }
     },
-    returnProduct:async(req,res)=>{
-        let formvalidation=Joi.object({
-           orderDetailsId:Joi.number().integer().min(1).required(),
-           notes:Joi.string().min(5).max(255).required(),
-           items:Joi.array().items(Joi.object({
-            orderId:Joi.number().integer().min(1).required(),
-            quantity:Joi.number().integer().min(1).required()
-           })).required().min(1)
+    returnProduct: async (req, res) => {
+        let formvalidation = Joi.object({
+            orderDetailsId: Joi.number().integer().min(1).required(),
+            notes: Joi.string().min(5).max(255).required(),
+            items: Joi.array().items(Joi.object({
+                orderId: Joi.number().integer().min(1).required(),
+                quantity: Joi.number().integer().min(1).required()
+            })).required().min(1)
         })
-         let validation = formvalidation.validate(req.body, { errors: { wrap: { label: false } }, abortEarly: false })
+        let validation = formvalidation.validate(req.body, { errors: { wrap: { label: false } }, abortEarly: false })
         let errorDetails = []
         if (validation.error) {
             errorDetails = validation.error.details.map(err => ({
@@ -1853,69 +1853,69 @@ let employee = {
                 message: err.message
             }))
             return res.status(422).json({ data: errorDetails })
-        }else{
+        } else {
             try {
-                let {vendor_id}=req.params
-                const vendor=await empmodels.getVendrosById(vendor_id)
-                if(vendor.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'vendor not found'}
+                let { vendor_id } = req.params
+                const vendor = await empmodels.getVendrosById(vendor_id)
+                if (vendor.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'vendor not found' }
                 }
-                const {orderDetailsId}=req.body
-                const orderDetails=await empmodels.getOrderDetailsById(orderDetailsId)
-                if(orderDetails.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'details not found'}
+                const { orderDetailsId } = req.body
+                const orderDetails = await empmodels.getOrderDetailsById(orderDetailsId)
+                if (orderDetails.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'details not found' }
                 }
-               let items=req.body.items
-               for(let i=0; i < items.length; i++){
-                const item=items[i]
-                const data={
-                    id:item.orderId,
-                    vendor_id
+                let items = req.body.items
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i]
+                    const data = {
+                        id: item.orderId,
+                        vendor_id
+                    }
+                    const order = await empmodels.getOrder(data)
+                    if (order.length == 0 || order[0].status != 4) {
+                        throw { errorCode: 'API_ERROR', message: 'cannot get the order details' }
+                    }
+                    if (order[0].quantity < item.quantity) {
+                        throw { errorCode: 'API_ERROR', message: 'quantity cannot exceed the no of items' }
+                    }
+                    const payload = {
+                        order_details_id: orderDetailsId,
+                        status: 1,
+                        notes: req.body.notes,
+                        vendor_id,
+                        order_id: item.orderId,
+                        quantity: item.quantity,
+                        created_at: moment().format("YYYY-MM-DD HH:mm:ss")
+                    }
+                    console.log(payload);
+
+                    await empmodels.insertReturnProduct(payload)
                 }
-                const order=await empmodels.getOrder(data)
-                if(order.length==0 || order[0].status!=4){
-                    throw {errorCode:'API_ERROR',message:'cannot get the order details'}
-                }
-                if(order[0].quantity<item.quantity){
-                    throw {errorCode:'API_ERROR',message:'quantity cannot exceed the no of items'}
-                }
-                const payload={
-                    order_details_id:orderDetailsId,
-                    status:1,
-                    notes:req.body.notes,
-                    vendor_id,
-                    order_id:item.orderId,
-                    quantity:item.quantity,
-                    created_at:moment().format("YYYY-MM-DD HH:mm:ss")
-                }
-                console.log(payload);
-                
-                await empmodels.insertReturnProduct(payload)
-               }
-               return res.status(200).json({message:'return request succesful'})
+                return res.status(200).json({ message: 'return request succesful' })
             } catch (error) {
-                 if (error.errorCode === 'VALID_ERROR') {
-                return res.status(422).json({
-                    message: error.message
-                })
-            } else if (error.errorCode === 'API_ERROR') {
-                return res.status(409).json({
-                    message: error.message
-                })
-            } else {
-                return res.status(409).json({
-                    error: error.message
-                })
-            }
+                if (error.errorCode === 'VALID_ERROR') {
+                    return res.status(422).json({
+                        message: error.message
+                    })
+                } else if (error.errorCode === 'API_ERROR') {
+                    return res.status(409).json({
+                        message: error.message
+                    })
+                } else {
+                    return res.status(409).json({
+                        error: error.message
+                    })
+                }
             }
         }
     },
-    updateReturnProduct:async(req,res)=>{
-        let formvalidation=Joi.object({
-            status:Joi.number().integer().min(1).required(),
-            remarks:Joi.string().min(5).max(150).required()
+    updateReturnProduct: async (req, res) => {
+        let formvalidation = Joi.object({
+            status: Joi.number().integer().min(1).required(),
+            remarks: Joi.string().min(5).max(150).required()
         })
-         let validation = formvalidation.validate(req.body, { errors: { wrap: { label: false } }, abortEarly: false })
+        let validation = formvalidation.validate(req.body, { errors: { wrap: { label: false } }, abortEarly: false })
         let errorDetails = []
         if (validation.error) {
             errorDetails = validation.error.details.map(err => ({
@@ -1923,118 +1923,118 @@ let employee = {
                 message: err.message
             }))
             return res.status(422).json({ data: errorDetails })
-        }else{
+        } else {
             try {
-                let {dispatcher_id,return_id}=req.params
-                const returnProduct=await empmodels.getReturnProductById(return_id)
-                if(returnProduct.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'return not found'}
+                let { dispatcher_id, return_id } = req.params
+                const returnProduct = await empmodels.getReturnProductById(return_id)
+                if (returnProduct.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'return not found' }
                 }
 
-                const vendor=await empmodels.getVendrosById(returnProduct[0].vendor_id)
-                if(vendor.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'vendor not found'}
+                const vendor = await empmodels.getVendrosById(returnProduct[0].vendor_id)
+                if (vendor.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'vendor not found' }
                 }
                 console.log(returnProduct);
-                const orderId=returnProduct[0].order_id
-                const data={
-                    id:orderId,
-                    shipped_by:dispatcher_id
+                const orderId = returnProduct[0].order_id
+                const data = {
+                    id: orderId,
+                    shipped_by: dispatcher_id
                 }
-                const order=await empmodels.getOrder(data)
-                if(order.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'cannot get the order'}
+                const order = await empmodels.getOrder(data)
+                if (order.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'cannot get the order' }
                 }
-                const orderDetails=await empmodels.getOrderDetailsById(returnProduct[0].order_details_id)
-                if(orderDetails.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'cannot get the order details'}
+                const orderDetails = await empmodels.getOrderDetailsById(returnProduct[0].order_details_id)
+                if (orderDetails.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'cannot get the order details' }
                 }
-                const product=await empmodels.getProductById(order[0].product_id)
-                if(product.length==0){
-                    throw {errorCode:'VALID_ERROR',message:'product not found'}
+                const product = await empmodels.getProductById(order[0].product_id)
+                if (product.length == 0) {
+                    throw { errorCode: 'VALID_ERROR', message: 'product not found' }
                 }
-                let stock=product[0].stock
-                const status=req.body.status
-                if(status==2){
-                    stock+=returnProduct[0].quantity
+                let stock = product[0].stock
+                const status = req.body.status
+                if (status == 2) {
+                    stock += returnProduct[0].quantity
                     console.log(stock);
-                    const data={
+                    const data = {
                         stock
                     }
-                    await empmodels.updateProduct(product[0].id,data)
-                    //here iam d
-                    const returnPrice=returnProduct[0].quantity*product[0].base_price
-                    const returnPriceAfterDiscount=returnPrice-(vendor[0].discount/100)*returnPrice
-                    const afterRefund=order[0].price_after_discount-returnPriceAfterDiscount
-                    console.log(returnPrice,returnPriceAfterDiscount,afterRefund);
-                    const data1={
-                        quantity:order[0].quantity-returnProduct[0].quantity,
-                        total_price:returnPrice,
-                        price_after_discount:afterRefund
+                    await empmodels.updateProduct(product[0].id, data)
+                    //here iam doing anything whatever i like
+                    const returnPrice = returnProduct[0].quantity * product[0].base_price
+                    const returnPriceAfterDiscount = returnPrice - (vendor[0].discount / 100) * returnPrice
+                    const afterRefund = order[0].price_after_discount - returnPriceAfterDiscount
+                    console.log(returnPrice, returnPriceAfterDiscount, afterRefund);
+                    const data1 = {
+                        quantity: order[0].quantity - returnProduct[0].quantity,
+                        total_price: returnPrice,
+                        price_after_discount: afterRefund
                     }
-                    await empmodels.updateOrderById(order[0].id,data1)
+                    await empmodels.updateOrderById(order[0].id, data1)
                     console.log(orderDetails[0].id);
-                    
-                    await empmodels.updateOrderDetails(orderDetails[0].id,{total_price:orderDetails[0].total_price-returnPriceAfterDiscount})
-                    const payload={
-                        status:req.body.status,
-                        remarks:req.body.remarks,
-                        updated_at:moment().format("YYYY-MM-DD HH:mm:ss")
+
+                    await empmodels.updateOrderDetails(orderDetails[0].id, { total_price: orderDetails[0].total_price - returnPriceAfterDiscount })
+                    const payload = {
+                        status: req.body.status,
+                        remarks: req.body.remarks,
+                        updated_at: moment().format("YYYY-MM-DD HH:mm:ss")
                     }
-                    await empmodels.updateReturn(return_id,payload)
-                }else{
-                  const payload={
-                    status:req.body.status,
-                    remarks:req.body.remarks,
-                      updated_at:moment().format("YYYY-MM-DD HH:mm:ss")
-                  }  
-                    await empmodels.updateReturn(return_id,payload)
+                    await empmodels.updateReturn(return_id, payload)
+                } else {
+                    const payload = {
+                        status: req.body.status,
+                        remarks: req.body.remarks,
+                        updated_at: moment().format("YYYY-MM-DD HH:mm:ss")
+                    }
+                    await empmodels.updateReturn(return_id, payload)
                 }
-                return res.status(200).json({message:'product verified and reacted succesfully'})
+                return res.status(200).json({ message: 'product verified and reacted succesfully' })
             } catch (error) {
-                 if (error.errorCode === 'VALID_ERROR') {
-                return res.status(422).json({
-                    message: error.message
-                })
-            } else if (error.errorCode === 'API_ERROR') {
-                return res.status(409).json({
-                    message: error.message
-                })
-            } else {
-                return res.status(409).json({
-                    error: error.message
-                })
-            }
+                if (error.errorCode === 'VALID_ERROR') {
+                    return res.status(422).json({
+                        message: error.message
+                    })
+                } else if (error.errorCode === 'API_ERROR') {
+                    return res.status(409).json({
+                        message: error.message
+                    })
+                } else {
+                    return res.status(409).json({
+                        error: error.message
+                    })
+                }
             }
         }
 
     },
-    getOrderpagination:async(req,res)=>{
+    getOrderpagination: async (req, res) => {
         try {
-            let {vendorId}=req.params
-            let offset= req.query.offset && req.query.offset != "undefined" ? parseInt(req.query.offset) : 0;
-            let limit= req.query.limit && req.query.limit != "undefined" ? parseInt(req.query.limit) : 10;
-            let status=req.query.status && req.query.status != "undefined" ? parseInt(req.query.status) : 0;
-            const vendor=await empmodels.getVendrosById(vendorId)
-            if(vendor.length==0){
-                throw {errorCode:'VALID_ERROR',menubar:'vendor not found'}
+            let { vendorId } = req.params
+            let offset = req.query.offset && req.query.offset != "undefined" ? parseInt(req.query.offset) : 0;
+            let limit = req.query.limit && req.query.limit != "undefined" ? parseInt(req.query.limit) : 10;
+            let status = req.query.status && req.query.status != "undefined" ? parseInt(req.query.status) : 0;
+            const vendor = await empmodels.getVendrosById(vendorId)
+            if (vendor.length == 0) {
+                throw { errorCode: 'VALID_ERROR', menubar: 'vendor not found' }
             }
             let total = 0;
-            let totalCount=await empmodels.orderCount(vendorId)
+            let totalCount = await empmodels.orderCount(vendorId)
             console.log(totalCount);
-            
-            const orders=await empmodels.getOrderUsingoffset(limit,offset,vendorId,status);
+
+            const orders = await empmodels.getOrderUsingoffset(limit, offset, vendorId, status);
             if (totalCount.length > 0) {
                 total += totalCount[0].count;
             }
 
-            return res.status(200).json({data: orders, count:total})
+            return res.status(200).json({ data: orders, count: total })
         } catch (error) {
-             if (error.errorCode === 'VALID_ERROR') {
+            if (error.errorCode === 'VALID_ERROR') {
                 return res.status(422).json({
                     message: error.message
                 })
-            }  else {
+            } else {
                 return res.status(409).json({
                     error: error.message
                 })
@@ -2804,6 +2804,172 @@ let employee = {
                     })
                 }
             }
+        }
+    },
+    addReview: async (req, res) => {
+        let formvalidation = Joi.object({
+            rating: Joi.number().integer().min(1).max(5).required(),
+            comment: Joi.string().min(5).max(500).required()
+        })
+        let validation = formvalidation.validate(req.body, { errors: { wrap: { label: false } }, abortEarly: false })
+        let errorDetails = []
+        if (validation.error) {
+            errorDetails = validation.error.details.map(err => ({
+                field: err.context.key,
+                message: err.message
+            }))
+            return res.status(422).json({ data: errorDetails })
+        } else {
+            try {
+                let { vendorId, productId } = req.params
+                const vendor = await empmodels.getVendrosById(vendorId)
+                if (vendor.length == 0) {
+                    throw {errorCode:'VALID_ERROR',message:'vendor not found'}
+                }
+                const product=await empmodels.getProductById(productId)
+                if(product.length==0){
+                    throw {errorCode:'VALID_ERROR',message:'product not found'}
+                }
+               
+                let check={
+                    vendor_id:vendorId,
+                    product_id:productId
+                }
+                 //Checking if the vendor contains the product in his orders
+                const vendorOrder=await empmodels.getOrder(check)
+                if(vendorOrder.length==0){
+                    throw {errorCode:'API_ERROR',message:'vendor not purchased this product'}
+                }
+                const payload={
+                    product_id:productId,
+                    vendor_id:vendorId,
+                    rating:req.body.rating,
+                    comment:req.body.comment,
+                    created_at:moment().format('YYYY-MM-DD HH:mm:ss')
+                }
+                await empmodels.insertReview(payload)
+                return res.status(200).json({message:'review added succesfully'})
+
+            } catch (error) {
+                 if (error.errorCode === 'VALID_ERROR') {
+                    return res.status(422).json({
+                        message: error.message
+                    })
+                } else if (error.errorCode === 'API_ERROR') {
+                    return res.status(409).json({
+                        message: error.message
+                    })
+                } else {
+                    return res.status(409).json({
+                        error: error.message
+                    })
+                }
+            }
+        }
+    },
+    updateReview:async(req,res)=>{
+        let formvalidation = Joi.object({
+           // rating: Joi.number().integer().min(1).max(5).required(),
+            comment: Joi.string().min(5).max(500).required()
+        })
+        let validation = formvalidation.validate(req.body, { errors: { wrap: { label: false } }, abortEarly: false })
+        let errorDetails = []
+        if (validation.error) {
+            errorDetails = validation.error.details.map(err => ({
+                field: err.context.key,
+                message: err.message
+            }))
+            return res.status(422).json({ data: errorDetails })
+        }else{
+            try {
+                let {reviewId}=req.params
+                const review=await empmodels.getReviewById(reviewId)
+                if(review.length==0){
+                    throw {errorCode:'VALID_ERROR',message:'review not found'}
+                }
+                const payload={
+                    comment:req.body.comment
+                }
+                await empmodels.updateReview(reviewId,payload)
+                return res.status(200).json({message:'review updated succesfully'})
+            } catch (error) {
+                if (error.errorCode === 'VALID_ERROR') {
+                    return res.status(422).json({
+                        message: error.message
+                    })
+                } else if (error.errorCode === 'API_ERROR') {
+                    return res.status(409).json({
+                        message: error.message
+                    })
+                } else {
+                    return res.status(409).json({
+                        error: error.message
+                    })
+                }
+            }
+        }
+    },
+    deleteReview:async(req,res)=>{
+        let formvalidation=Joi.object({
+            reviewId:Joi.number().integer().min(1).required()
+        })
+        let validation=formvalidation.validate(req.params,{errors:{wrap:{label:false}},abortEarly:false})
+        let errorDetails=[]
+        if(validation.error){
+            errorDetails=validation.error.details.map(err=>({
+                field: err.context.key,
+                message: err.message
+            }))
+        }else{
+        try {
+            let {reviewId}=req.params
+            const review=await empmodels.getReviewById(reviewId)
+            if(review.length==0){
+                throw {errorCode:'VAILD_ERROR',message:'review not found'}
+            }
+            await empmodels.deleteReview(reviewId)
+            return res.status(200).json({message:'review deleted succefully'})
+        } catch (error) {
+            if (error.errorCode === 'VALID_ERROR') {
+                    return res.status(422).json({
+                        message: error.message
+                    })
+                } else if (error.errorCode === 'API_ERROR') {
+                    return res.status(409).json({
+                        message: error.message
+                    })
+                } else {
+                    return res.status(409).json({
+                        error: error.message
+                    })
+                }
+        }
+    }
+    },
+    getReviewsByProductID:async(req,res)=>{
+        try {
+            let {productId}=req.params
+            const product=await empmodels.getProductById(productId)
+            
+            if(product.length==0){
+                throw {errorCode:'VALID_ERROR',message:'product not found'}
+            }
+            const reviews=await empmodels.getReviewByProductId(productId)
+            return res.status(200).json({data:reviews})
+        } catch (error) {
+             if (error.errorCode === 'VALID_ERROR') {
+                    return res.status(422).json({
+                        message: error.message
+                    })
+                } else if (error.errorCode === 'API_ERROR') {
+                    return res.status(409).json({
+                        message: error.message
+                    })
+                } else {
+                    return res.status(409).json({
+                        error: error.message
+                    })
+                }
         }
     }
 

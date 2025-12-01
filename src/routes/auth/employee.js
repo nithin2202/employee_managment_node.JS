@@ -24,5 +24,8 @@ router.put('/order/payment/:vendor_id/:id',controller.orderPayment)
 router.post('/order/return/:vendor_id',controller.returnProduct)
 router.put('/order/returnverify/:dispatcher_id/:return_id',controller.updateReturnProduct)
 router.get('/order/pagination/:vendorId',controller.getOrderpagination)
-
+router.post('/review/:vendorId/:productId',controller.addReview)
+router.put('/review/update/:reviewId',controller.updateReview)
+router.delete('/review/delete/:reviewId',controller.deleteReview)
+router.get('/review/get/:productId',controller.getReviewsByProductID)
 module.exports = router;
